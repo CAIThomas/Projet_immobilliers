@@ -12,4 +12,9 @@ La première étape de notre projet est de choisir un site que nous voulons scra
 
 ## étape 2 :
 
-crée un code python qui nous permet de scraper le site, le but est de gagné du temps. Le code du scraping sera dans le fichier code.
+Crée un code Python qui nous permet de scraper le site, le but est de gagner du temps. 
+Pour la partie code nous avons plusieurs étapes :
+
+
+
+
