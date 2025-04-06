@@ -8,4 +8,4 @@ L’objectif de ce projet est de développer un modèle de Machine Learning perm
 
 La première étape de notre projet est de choisir un site que nous voulons scrapper pour créer notre base de donnée, nous avons choisi le site :"logic-immo"
 
-![alt text](logic-immo.png)
+![alt text](https://github.com/CAIThomas/Projet_immobilliers/blob/main/images/logic-immo.png?raw=true)
