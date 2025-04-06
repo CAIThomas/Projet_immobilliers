@@ -23,7 +23,7 @@ Pour la partie code nous avons plusieurs étapes :
 -Puis après avoir importé, on peut utiliser les modules comme Webdriver, Services, Options, By, WebDriverWait, expected_conditions : Ces modules permettent de lancer un navigateur, de le configurer, de localiser des éléments sur une page, et d’attendre que certains éléments soient prêts avant d'interagir avec eux.
 
 Notre prochaine étape était de régler les problèmes de cookies car lorsqu'on a atterri au site, la première chose qu'on nous demandait était les cookies, donc pour pouvoir continuer sur la page, on a créé une fonction pour accepter les cookies.
-
+![alt text](https://github.com/CAIThomas/Projet_immobilliers/blob/main/images/image5.png)
 ![alt text](https://github.com/CAIThomas/Projet_immobilliers/blob/main/images/image4.png)
 
 
