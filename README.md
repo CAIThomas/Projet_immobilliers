@@ -26,5 +26,17 @@ Notre prochaine étape était de régler les problèmes de cookies car lorsqu'on
 ![alt text](https://github.com/CAIThomas/Projet_immobilliers/blob/main/images/image5.png)
 ![alt text](https://github.com/CAIThomas/Projet_immobilliers/blob/main/images/image4.png)
 
+Nous avons réussi à faire en sorte que la machine clique automatiquement sur le bouton pour accepter les cookies.
+Maintenant, nous souhaitons que le bot clique sur toutes les annonces présentes sur la page. Pour cela, nous avons créé un code qui permet de parcourir l’ensemble des annonces.
+
+Cependant, nous avons rencontré quelques problèmes. En effet, lorsqu’on clique sur certaines annonces, on est redirigé vers un autre site immobilier. Ces sites demandent souvent une vérification humaine (comme un CAPTCHA), que notre bot n’a pas réussi à passer.
+
+Pour contourner ce problème, nous avons décidé d’ignorer toutes les annonces qui redirigent vers un site autre que Logic-Immo.
+
+Voici notre code pour cliquer les annonces :
+
+![alt text](https://github.com/CAIThomas/Projet_immobilliers/blob/main/images/image6.png)
+
+
 
 
