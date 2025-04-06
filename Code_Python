@@ -1,1 +1,300 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Apr  5 20:44:51 2025
 
+@author: thoma
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Mar 26 17:45:44 2025
+
+@author: thoma
+"""
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+import pandas as pd
+import re
+import time
+import random
+
+# Options Chrome
+chrome_options = Options()
+chrome_options.add_experimental_option('detach', True)  # Garde Chrome ouvert
+chrome_options.add_argument("start-maximized")
+chrome_options.add_argument("--incognito")
+chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+
+# Démarrer WebDriver
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=chrome_options)
+
+# URL de recherche
+base_url = "https://www.logic-immo.com/classified-search?distributionTypes=Buy,Buy_Auction,Compulsory_Auction&estateTypes=House,Apartment&locations=AD08FR31096&order=Default"
+search_url = f"{base_url}&m=homepage_new_search_classified_search_result"
+driver.get(search_url)
+
+# -------------------------------------------Accepter les cookies---------------------------------------------
+def accept_cookies():
+    try:
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        for iframe in iframes:
+            driver.switch_to.frame(iframe)
+            try:
+                accept_button = WebDriverWait(driver, 3).until(
+                    EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button"))
+                )
+                accept_button.click()
+                print("✅ Bouton 'TOUT ACCEPTER' cliqué dans l'iframe !")
+                break
+            except:
+                driver.switch_to.default_content()
+
+        accept_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button"))
+        )
+        accept_button.click()
+        print("✅ Bouton 'TOUT ACCEPTER' cliqué avec succès !")
+
+    except Exception as e:
+        print(f"❌ Impossible de cliquer sur 'TOUT ACCEPTER' : {e}")
+
+accept_cookies()
+
+# Sauvegarder la fenêtre originale
+original_window = driver.current_window_handle
+
+# Liste pour stocker les données
+data = []
+
+# Paramètres de pagination
+current_page = 1
+max_pages = 1  # Vous pouvez ajuster ce nombre selon vos besoins
+
+while current_page <= max_pages:
+    print(f"\n=== PAGE {current_page} ===")
+    page_url = f"{base_url}&page={current_page}"
+    driver.get(page_url)
+    
+    # Vérifie s'il reste des annonces
+    try:
+        no_results = driver.find_element(By.XPATH, "//*[contains(text(), 'Aucun résultat')]")
+        print("❌ Fin des résultats détectée.")
+        break
+    except NoSuchElementException:
+        print("✅ Résultats trouvés, on continue.")
+
+    # Attente aléatoire pour paraître plus humain
+    time.sleep(random.uniform(1.5, 3.0))
+
+    # Initialisation du compteur pour les annonces de la page
+    index = 0
+
+    while True:
+        annonces = driver.find_elements(By.XPATH, '//*[@id="root"]/div/div[3]/div[1]/div[4]/div/div')
+
+        if index >= len(annonces):
+            print(f"✅ Toutes les annonces de la page {current_page} ont été visitées !")
+            break
+
+        try:
+            WebDriverWait(driver, 10).until(EC.element_to_be_clickable(annonces[index]))
+            annonces[index].click()
+            print(f"✅ Clique sur l'annonce {index + 1} réussi.")
+
+            WebDriverWait(driver, 10).until(EC.number_of_windows_to_be(2))
+
+            new_window = [window for window in driver.window_handles if window != original_window][0]
+            driver.switch_to.window(new_window)
+            print("🔄 Passé à la nouvelle fenêtre.")
+
+            # Vérifier si l'annonce est sur "logic-immo.com"
+            if "logic-immo.com" not in driver.current_url:
+                print("🚨 Redirection vers un site externe détectée ! Fermeture de l'onglet...")
+                driver.close()
+                driver.switch_to.window(original_window)
+                index += 1
+                continue
+
+            # Initialisation des variables
+            pieces = superficie = etage = nombre_etages = prix = arrondissement = charges_annuelles = None
+            balcon = ascenseur = parking = cave = accessible_mobilité_réduite = "Non"
+            interphone = alarme = digicode = gardien = "Non"
+            Cuisine_ouverte = sans_vis_à_vis = calme = "Non"
+
+            # ---------------- Récupérer les caractéristiques de l'annonce------------------------------------------
+            caracteristiques_elements = driver.find_elements(By.XPATH, "//div[@class='css-j7qwjs']")
+            for elem in caracteristiques_elements:
+                try:
+                    valeur = elem.find_element(By.CLASS_NAME, "css-1nxshv1").text   
+                    nom = elem.find_element(By.CLASS_NAME, "css-15ctory").text.lower()
+
+                    if nom == "pièce" or "pièces" in nom:
+                        pieces = valeur
+                    elif nom == "superficie":
+                        superficie = valeur
+                    elif nom == "étage":
+                        etage_info = valeur
+                        match = re.search(r'(\d+)/(\d+)', etage_info)
+                        if match:
+                            etage = match.group(1)  # Premier chiffre = étage actuel
+                            nombre_etages = match.group(2)  # Deuxième chiffre = nombre total d'étages
+                        else:
+                            etage = etage_info
+                except:
+                    continue
+
+            # Récupérer le prix de l'annonce
+            try:
+                prix_element = driver.find_element(By.XPATH, "//span[@data-testid='aviv.CDP.Sections.Hardfacts.Price.Value']")
+                prix = prix_element.text.strip()
+                prix = prix.replace('â€¯', ' ').replace('â‚¬', '€')
+                print(f"💰 Prix trouvé : {prix}")
+            except Exception as e:
+                prix = None
+                print(f"❌ Erreur de récupération du prix : {e}")
+            # Récupérer l'arrondissement
+            try:
+                arrondissement_element = driver.find_element(By.XPATH, "//span[contains(@class, 'css-1ytyjyb') and contains (text(), 'Paris')]")
+                arrondissement = arrondissement_element.text.strip()
+                print(f"📍 Arrondissement trouvé : {arrondissement}")
+            except Exception as e:
+                arrondissement = None
+                print(f"❌ Erreur de récupération de l'arrondissement : {e}")
+            
+            # Récupérer Charges de copropriété
+            # Récupérer les charges annuelles (si disponibles)
+            try:
+                charges_element = driver.find_element(By.XPATH, "//span[contains(@class, 'css-1thfuam') and contains(text(), '€/an')]")
+                charges_annuelles = charges_element.text.strip()
+                charges_annuelles = charges_annuelles.replace('â€¯', ' ').replace('&nbsp;', ' ')
+                print(f"💸 Charges annuelles trouvées : {charges_annuelles}")
+            except Exception as e:
+                print(f"❌ Aucune charge annuelle trouvée : {e}")
+
+            # -----------------------Cliquer sur "Voir les caractéristiques" si disponible------------------------------
+            try:
+                voir_caracteristiques = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, "//span[@class='css-1gur7lg' and contains(text(), 'Voir les')]"))
+                )
+                voir_caracteristiques.click()
+                print("🔎 Bouton 'Voir les caractéristiques' cliqué.")
+        
+            except Exception as e:
+                print(f"❌ Erreur avec le bouton 'Voir les caractéristiques' : {e}")
+                
+
+            #------------------------------------ Récupérer les caractéristiques cachées ----------------------------------------------
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Balcon') or contains(text(), 'balcon') or contains(text(), 'BALCON')]"):
+                    balcon = "Oui" 
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Ascenseur') or contains(text(), 'ascenseur') or contains(text(), 'ASCENSEUR')]"):
+                    ascenseur = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Parking') or contains(text(), 'parking') or contains(text(), 'PARKING')]"):
+                    parking = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Cave') or contains(text(), 'cave') or contains(text(), 'CAVE')]"):
+                    cave = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Accessible aux personne à mobilité réduite') or contains(text(), 'accessible aux personne à mobilité réduite') or contains(text(), 'ACCESSIBLE AUX PERSONNE À MOBILITÉ RÉDUITE')]"):
+                    accessible_mobilité_réduite = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Interphone') or contains(text(), 'interphone') or contains(text(), 'INTERPHONE')]"):
+                    interphone = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Alarme') or contains(text(), 'alarme') or contains(text(), 'ALARME')]"):
+                    alarme = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Digicode') or contains(text(), 'digicode') or contains(text(), 'DIGICODE')]"):
+                    digicode = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Gardien') or contains(text(), 'gardien') or contains(text(), 'GARDIEN')]"):
+                    gardien = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Cuisine ouverte') or contains(text(), 'cuisine ouverte') or contains(text(), 'CUISINE OUVERTE')]"):
+                    Cuisine_ouverte = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'Sans vis à vis') or contains(text(), 'sans vis à vis') or contains(text(), 'SANS VIS À VIS')]"):
+                    sans_vis_à_vis = "Oui"
+            except:
+                pass
+
+            try:
+                if driver.find_element(By.XPATH, "//span[contains(text(), 'calme') or contains(text(), 'Calme') or contains(text(), 'CALME')]"):
+                    calme = "Oui"
+            except:
+                pass
+
+            # Ajouter les données à la liste
+            data.append([arrondissement, pieces, superficie, etage, nombre_etages, balcon, 
+                         ascenseur, parking, prix, cave, accessible_mobilité_réduite, 
+                         interphone, alarme, digicode, gardien,Cuisine_ouverte,sans_vis_à_vis,calme,charges_annuelles])
+
+            print(f"✅ Annonce {index + 1} scrapée avec succès !")
+
+            # Fermer l'onglet et revenir à la page principale
+            driver.close()
+            driver.switch_to.window(original_window)
+            print("🔙 Retour à l'onglet des résultats.")
+
+            # Attendre le rechargement de la page principale
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="root"]/div/div[3]/div[1]/div[4]')))
+
+            index += 1
+
+        except Exception as e:
+            print(f"❌ Erreur avec l'annonce {index + 1} : {e}")
+            index += 1
+
+    current_page += 1
+
+# Fermer le navigateur
+driver.quit()
+
+# Enregistrer les données dans un fichier CSV
+df = pd.DataFrame(data, columns=["Arrondissement", "Nombre de pieces", "Superficie", "Etage", 
+                                "Nombre d'etages", "Balcon", "Ascenseur", "Parking", "Prix", 
+                                "Cave", "Accessible_mobilité_réduite", "Interphone", 
+                                "Alarme", "Digicode", "Gardien","Cuisine ouverte","Sans vis à vis","Calme","Charge annuelles"])
+df.to_csv("annonces_logic_immo9.csv", index=False, encoding="utf-8", sep=";")
+
+print("📂 Fichier 'annonces_logic_immo8.csv' sauvegardé avec succès ! 🎉")
