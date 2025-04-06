@@ -15,6 +15,8 @@ La première étape de notre projet est de choisir un site que nous voulons scra
 Crée un code Python qui nous permet de scraper le site, le but est de gagner du temps. 
 Pour la partie code nous avons plusieurs étapes :
 
+### La première partie du code concerne la mise en place de l’environnement nécessaire pour utiliser Selenium, un outil d’automatisation web largement utilisé pour effectuer du web scraping ou des tests automatisés sur des sites internet. Voici les importations utilisées pour notre projet:
 
+![alt text](https://github.com/CAIThomas/Projet_immobilliers/blob/main/images/image1.png)
 
 
