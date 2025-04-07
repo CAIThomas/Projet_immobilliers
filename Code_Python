@@ -1,17 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Apr  5 20:44:51 2025
-
-@author: thoma
-"""
-
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Mar 26 17:45:44 2025
-
-@author: thoma
-"""
-
+# Import des bibliothèques nécessaires pour le scraping avec Selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -25,276 +12,263 @@ import re
 import time
 import random
 
-# Options Chrome
+# Options pour Chrome
 chrome_options = Options()
-chrome_options.add_experimental_option('detach', True)  # Garde Chrome ouvert
-chrome_options.add_argument("start-maximized")
-chrome_options.add_argument("--incognito")
-chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+chrome_options.add_experimental_option('detach', True)  # Garder la fenêtre ouverte après l'exécution du script
+chrome_options.add_argument("start-maximized")  # Lancer le navigateur en mode maximisé
+chrome_options.add_argument("--incognito")  # Mode incognito pour éviter les cookies persistants
+chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])  # Exclure les logs inutiles de Chrome
 
-# Démarrer WebDriver
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=chrome_options)
+# Démarrer WebDriver avec Chrome et configuration des options
+service = Service(ChromeDriverManager().install())  # Installer automatiquement le driver Chrome
+driver = webdriver.Chrome(service=service, options=chrome_options)  # Lancer le navigateur avec ces options
 
-# URL de recherche
-base_url = "https://www.logic-immo.com/classified-search?distributionTypes=Buy,Buy_Auction,Compulsory_Auction&estateTypes=House,Apartment&locations=AD08FR31096&order=Default"
+# URL de la page de recherche des annonces immobilières sur Logic-Immo
+base_url = "https://www.logic-immo.com/classified-search?distributionTypes=Buy,Buy_Auction&estateTypes=Apartment&locations=AD08FR31096&projectTypes=New_Build,Resale"
 search_url = f"{base_url}&m=homepage_new_search_classified_search_result"
-driver.get(search_url)
+driver.get(search_url)  # Ouvrir la page
 
-# -------------------------------------------Accepter les cookies---------------------------------------------
+# ------------------------------------------ FONCTIONS ---------------------------------------------------------
+# Fonction pour accepter les cookies
 def accept_cookies():
     try:
-        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")  # Cherche les iframes sur la page
         for iframe in iframes:
-            driver.switch_to.frame(iframe)
+            driver.switch_to.frame(iframe)  # Passe dans l'iframe pour interagir avec ses éléments
             try:
-                accept_button = WebDriverWait(driver, 3).until(
-                    EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button"))
-                )
-                accept_button.click()
-                print("✅ Bouton 'TOUT ACCEPTER' cliqué dans l'iframe !")
-                break
+                accept_button = WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button")))  # Attendre que le bouton "Accepter" soit cliquable
+                accept_button.click()  # Cliquer sur le bouton "Accepter"
+                break  # Si un bouton est trouvé et cliqué, sortir de la boucle
             except:
-                driver.switch_to.default_content()
+                driver.switch_to.default_content()  # Retourner au contenu principal si le bouton n'est pas trouvé dans l'iframe
 
-        accept_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button"))
-        )
+        # Attendre et cliquer sur le bouton "Accepter" si nécessaire
+        accept_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button")))
         accept_button.click()
-        print("✅ Bouton 'TOUT ACCEPTER' cliqué avec succès !")
 
     except Exception as e:
-        print(f"❌ Impossible de cliquer sur 'TOUT ACCEPTER' : {e}")
+        print(f"❌ Impossible de cliquer sur 'TOUT ACCEPTER' : {e}")  # Gérer les erreurs
 
-accept_cookies()
+accept_cookies()  # Appeler la fonction pour accepter les cookies
 
-# Sauvegarder la fenêtre originale
-original_window = driver.current_window_handle
-
-# Liste pour stocker les données
-data = []
-
-# Paramètres de pagination
+# Variables initiales
+original_window = driver.current_window_handle  # Garde la référence de la fenêtre principale
+data = []  # Liste pour stocker les données récupérées
 current_page = 1
-max_pages = 1  # Vous pouvez ajuster ce nombre selon vos besoins
+max_pages = 400
 
-while current_page <= max_pages:
-    print(f"\n=== PAGE {current_page} ===")
-    page_url = f"{base_url}&page={current_page}"
-    driver.get(page_url)
-    
-    # Vérifie s'il reste des annonces
+# Fonction pour vérifier les caractéristiques (balcon, ascenseur, etc.)
+def check_caracteristique(nom_equipement):
     try:
-        no_results = driver.find_element(By.XPATH, "//*[contains(text(), 'Aucun résultat')]")
-        print("❌ Fin des résultats détectée.")
+        nom_equipement = nom_equipement.lower()  # Convertir le nom de l'équipement en minuscule
+        fenetre_text = driver.find_element(By.XPATH, "//*[@id='react-aria-:R5ku6spl6:']/div[2]/div").text.lower()  # Texte de la fenêtre des détails
+        sections = driver.find_elements(By.XPATH, "//ul[@data-testid='aviv.CDP.Sections.Features.Details.category']")  # Sections avec les caractéristiques
+        non_inclus_texts = []  # Liste pour stocker les éléments non inclus
+        for section in sections:
+            try:
+                titre = section.find_element(By.TAG_NAME, "h3").text.lower()  # Cherche les titres des sections
+                if "non inclus" in titre:
+                    spans = section.find_elements(By.XPATH, ".//span")  # Cherche les éléments dans la section "non inclus"
+                    for span in spans:
+                        texte = span.text.strip().lower()  # Nettoyer le texte
+                        if texte:
+                            non_inclus_texts.append(texte)  # Ajouter à la liste des éléments non inclus
+            except:
+                continue  # Continuer en cas d'erreur
+
+        for phrase in non_inclus_texts:
+            if nom_equipement in phrase:  # Si l'équipement est mentionné dans la section "non inclus"
+                return "Non"
+
+        if nom_equipement in fenetre_text:  # Si l'équipement est trouvé dans le texte de la fenêtre
+            return "Oui"
+
+        return "Non"  # Par défaut, retourner "Non"
+
+    except Exception as e:
+        print("Erreur dans check_caracteristique:", str(e))
+        return "Non"  # Retourner "Non" en cas d'erreur
+
+# Fonction pour obtenir la superficie du salon
+def get_superficie_salon():
+    try:
+        spans = driver.find_elements(By.XPATH, "//span[@class='css-1az3ztj']")  # Trouver les éléments de superficie
+        for span in spans:
+            texte = span.text.strip().lower()  # Nettoyer le texte
+            if texte.startswith("salon") and "m²" in texte:  # Vérifier si c'est la superficie du salon
+                match = re.search(r'(\d+[\.,]?\d*)\s*m\u00b2', texte)  # Utiliser une expression régulière pour extraire la superficie
+                if match:
+                    superficie = match.group(1).replace(',', '.')  # Remplacer les virgules par des points pour avoir un format décimal
+                    return float(superficie)  # Retourner la superficie sous forme de nombre décimal
+        return None
+    except Exception as e:
+        print("❌ Erreur dans get_superficie_salon:", str(e))
+        return None  # Retourner None en cas d'erreur
+
+# Fonction pour obtenir l'exposition de l'appartement
+def get_exposition():
+    try:
+        spans = driver.find_elements(By.XPATH, "//span[@class='css-1az3ztj']")  # Trouver les éléments de l'exposition
+        for span in spans:
+            texte = span.text.strip().lower()  # Nettoyer le texte
+            if texte.startswith("exposition"):  # Vérifier si le texte concerne l'exposition
+                exposition = texte.replace("exposition", "").strip()  # Extraire l'exposition
+                return exposition.capitalize() if exposition else None  # Retourner l'exposition avec une majuscule
+        return None
+    except Exception as e:
+        print("❌ Erreur dans get_exposition:", str(e))
+        return None  # Retourner None en cas d'erreur
+
+# ---------------------------------- SCRAPING --------------------------------------------------------
+# Boucle principale pour parcourir les pages
+while current_page <= max_pages:
+    driver.get(f"{base_url}&page={current_page}")  # Accéder à la page de résultats
+    try:
+        driver.find_element(By.XPATH, "//*[contains(text(), 'Aucun résultat')]")  # Vérifier s'il n'y a aucun résultat
         break
     except NoSuchElementException:
-        print("✅ Résultats trouvés, on continue.")
+        pass  # Si l'élément n'est pas trouvé, continuer
 
-    # Attente aléatoire pour paraître plus humain
-    time.sleep(random.uniform(1.5, 3.0))
-
-    # Initialisation du compteur pour les annonces de la page
-    index = 0
+    time.sleep(random.uniform(1.5, 3.0))  # Attendre entre les actions pour simuler un comportement humain
+    index = 0  # Initialiser l'index des annonces
 
     while True:
-        annonces = driver.find_elements(By.XPATH, '//*[@id="root"]/div/div[3]/div[1]/div[4]/div/div')
-
-        if index >= len(annonces):
-            print(f"✅ Toutes les annonces de la page {current_page} ont été visitées !")
+        annonces = driver.find_elements(By.XPATH, '//*[@id="root"]/div/div[3]/div[1]/div[4]/div/div')  # Trouver toutes les annonces sur la page
+        if index >= len(annonces):  # Si l'index dépasse le nombre d'annonces, sortir
             break
 
         try:
-            WebDriverWait(driver, 10).until(EC.element_to_be_clickable(annonces[index]))
-            annonces[index].click()
-            print(f"✅ Clique sur l'annonce {index + 1} réussi.")
+            WebDriverWait(driver, 10).until(EC.element_to_be_clickable(annonces[index]))  # Attendre que l'annonce soit cliquable
+            annonces[index].click()  # Cliquer sur l'annonce
+            WebDriverWait(driver, 10).until(EC.number_of_windows_to_be(2))  # Attendre l'ouverture d'une nouvelle fenêtre
+            new_window = [w for w in driver.window_handles if w != original_window][0]  # Trouver la nouvelle fenêtre
+            driver.switch_to.window(new_window)  # Passer à la nouvelle fenêtre
 
-            WebDriverWait(driver, 10).until(EC.number_of_windows_to_be(2))
-
-            new_window = [window for window in driver.window_handles if window != original_window][0]
-            driver.switch_to.window(new_window)
-            print("🔄 Passé à la nouvelle fenêtre.")
-
-            # Vérifier si l'annonce est sur "logic-immo.com"
-            if "logic-immo.com" not in driver.current_url:
-                print("🚨 Redirection vers un site externe détectée ! Fermeture de l'onglet...")
-                driver.close()
-                driver.switch_to.window(original_window)
-                index += 1
+            if not driver.current_url.startswith("https://www.logic-immo.com/detail-vente-"):  # Vérifier si l'URL correspond à une annonce valide
+                driver.close()  # Fermer la fenêtre
+                driver.switch_to.window(original_window)  # Retourner à la fenêtre principale
+                index += 1  # Passer à l'annonce suivante
                 continue
 
-            # Initialisation des variables
-            pieces = superficie = etage = nombre_etages = prix = arrondissement = charges_annuelles = None
+            # Initialiser les variables pour les caractéristiques
+            pieces = superficie = superficie_salon = etage = nombre_etages = prix = arrondissement = charges_annuelles = exposition = None
             balcon = ascenseur = parking = cave = accessible_mobilité_réduite = "Non"
             interphone = alarme = digicode = gardien = "Non"
             Cuisine_ouverte = sans_vis_à_vis = calme = "Non"
+            chambres = 1  # Nombre de chambres par défaut
 
-            # ---------------- Récupérer les caractéristiques de l'annonce------------------------------------------
+            # ----------------------------- caratéristique de base ---------------------------------------------------
+            # Extraire les caractéristiques de base comme le nombre de pièces, la superficie, etc.
             caracteristiques_elements = driver.find_elements(By.XPATH, "//div[@class='css-j7qwjs']")
             for elem in caracteristiques_elements:
                 try:
-                    valeur = elem.find_element(By.CLASS_NAME, "css-1nxshv1").text   
+                    valeur = elem.find_element(By.CLASS_NAME, "css-1nxshv1").text
                     nom = elem.find_element(By.CLASS_NAME, "css-15ctory").text.lower()
-
-                    if nom == "pièce" or "pièces" in nom:
+                    if nom in ["pièce", "pièces"]:
                         pieces = valeur
+                    elif nom in ["chambre", "chambres"]:
+                        chambres = valeur
                     elif nom == "superficie":
                         superficie = valeur
                     elif nom == "étage":
-                        etage_info = valeur
-                        match = re.search(r'(\d+)/(\d+)', etage_info)
+                        match = re.search(r'(\d+)/(\d+)', valeur)
                         if match:
-                            etage = match.group(1)  # Premier chiffre = étage actuel
-                            nombre_etages = match.group(2)  # Deuxième chiffre = nombre total d'étages
+                            etage = match.group(1)
+                            nombre_etages = match.group(2)
                         else:
-                            etage = etage_info
+                            etage = valeur
                 except:
-                    continue
+                    continue  # Si une erreur se produit, continuer avec le prochain élément
 
-            # Récupérer le prix de l'annonce
+            # Extraire le prix, l'arrondissement et les charges annuelles
             try:
-                prix_element = driver.find_element(By.XPATH, "//span[@data-testid='aviv.CDP.Sections.Hardfacts.Price.Value']")
-                prix = prix_element.text.strip()
-                prix = prix.replace('â€¯', ' ').replace('â‚¬', '€')
-                print(f"💰 Prix trouvé : {prix}")
-            except Exception as e:
-                prix = None
-                print(f"❌ Erreur de récupération du prix : {e}")
-            # Récupérer l'arrondissement
+                prix = driver.find_element(By.XPATH, "//span[@data-testid='aviv.CDP.Sections.Hardfacts.Price.Value']").text.strip()
+                prix = prix.replace('â€¯', ' ').replace('â‚¬', '€')  # Nettoyer le prix
+            except:
+                prix = None  # Si aucune donnée trouvée, assigner None
+
             try:
-                arrondissement_element = driver.find_element(By.XPATH, "//span[contains(@class, 'css-1ytyjyb') and contains (text(), 'Paris')]")
-                arrondissement = arrondissement_element.text.strip()
-                print(f"📍 Arrondissement trouvé : {arrondissement}")
-            except Exception as e:
+                arrondissement = driver.find_element(By.XPATH, "//span[contains(@style, 'white-space:nowrap') and contains(text(), 'Paris')]").text.strip()
+            except:
                 arrondissement = None
-                print(f"❌ Erreur de récupération de l'arrondissement : {e}")
-            
-            # Récupérer Charges de copropriété
-            # Récupérer les charges annuelles (si disponibles)
-            try:
-                charges_element = driver.find_element(By.XPATH, "//span[contains(@class, 'css-1thfuam') and contains(text(), '€/an')]")
-                charges_annuelles = charges_element.text.strip()
-                charges_annuelles = charges_annuelles.replace('â€¯', ' ').replace('&nbsp;', ' ')
-                print(f"💸 Charges annuelles trouvées : {charges_annuelles}")
-            except Exception as e:
-                print(f"❌ Aucune charge annuelle trouvée : {e}")
 
-            # -----------------------Cliquer sur "Voir les caractéristiques" si disponible------------------------------
+            try:
+                charges_annuelles = driver.find_element(By.XPATH, "//span[contains(@class, 'css-1thfuam') and contains(text(), '€/an')]").text.strip()
+                charges_annuelles = charges_annuelles.replace('â€¯', ' ').replace('&nbsp;', ' ')
+            except:
+                charges_annuelles = None
+
+            # -------------------------- Recherche du DPE et GES ---------------------------------------
+            # Recherche du Diagnostic de Performance Énergétique (DPE)
+            try:
+                dpe_element = driver.find_element(By.XPATH, "//div[@data-testid='aviv.CDP.Sections.Energy.Preview.EfficiencyClass']")
+                dpe = dpe_element.text.strip()
+                print(f"🌡️ DPE trouvé : {dpe}")
+            except Exception as e:
+                dpe = None
+                print(f"❌ DPE non trouvé : {e}")
+
+            # Recherche de l'indice d'émission de gaz à effet de serre (GES)
+            try:
+                ges_element = driver.find_element(By.XPATH, "//div[@data-testid='aviv.CDP.Sections.Energy.Preview.EfficiencyClass']")
+                ges = ges_element.text.strip()
+                print(f"🌍 GES trouvé : {ges}")
+            except Exception as e:
+                ges = None
+                print(f"❌ GES non trouvé : {e}")
+
+            # -------------------------- Récupération des autres caractéristiques ------------------------
             try:
                 voir_caracteristiques = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.XPATH, "//span[@class='css-1gur7lg' and contains(text(), 'Voir les')]"))
                 )
-                voir_caracteristiques.click()
-                print("🔎 Bouton 'Voir les caractéristiques' cliqué.")
-        
-            except Exception as e:
-                print(f"❌ Erreur avec le bouton 'Voir les caractéristiques' : {e}")
-                
+                voir_caracteristiques.click()  # Cliquer sur "Voir les caractéristiques" pour plus de détails
 
-            #------------------------------------ Récupérer les caractéristiques cachées ----------------------------------------------
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Balcon') or contains(text(), 'balcon') or contains(text(), 'BALCON')]"):
-                    balcon = "Oui" 
+                # Vérification des caractéristiques supplémentaires
+                balcon = check_caracteristique("Balcon")
+                ascenseur = check_caracteristique("Ascenseur")
+                parking = check_caracteristique("Parking")
+                cave = check_caracteristique("Cave")
+                accessible_mobilité_réduite = check_caracteristique("Accès mobilité réduite")
+                interphone = check_caracteristique("Interphone")
+                alarme = check_caracteristique("Alarme")
+                digicode = check_caracteristique("Digicode")
+                gardien = check_caracteristique("Gardien")
+                Cuisine_ouverte = check_caracteristique("Cuisine ouverte")
+                sans_vis_à_vis = check_caracteristique("Sans vis à vis")
+                calme = check_caracteristique("Calme")
             except:
-                pass
+                pass  # Si aucun bouton "Voir les caractéristiques" n'est trouvé, continuer
 
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Ascenseur') or contains(text(), 'ascenseur') or contains(text(), 'ASCENSEUR')]"):
-                    ascenseur = "Oui"
-            except:
-                pass
+            # Extraire la superficie du salon et l'exposition
+            superficie_salon = get_superficie_salon()
+            exposition = get_exposition()
 
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Parking') or contains(text(), 'parking') or contains(text(), 'PARKING')]"):
-                    parking = "Oui"
-            except:
-                pass
+            # Ajouter les données extraites à la liste `data`
+            data.append([prix, arrondissement, pieces, chambres, superficie, superficie_salon, etage, nombre_etages,
+                         balcon, ascenseur, parking, cave, accessible_mobilité_réduite, interphone, alarme,
+                         digicode, gardien, Cuisine_ouverte, sans_vis_à_vis, calme, charges_annuelles, exposition, dpe, ges])
 
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Cave') or contains(text(), 'cave') or contains(text(), 'CAVE')]"):
-                    cave = "Oui"
-            except:
-                pass
-
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Accessible aux personne à mobilité réduite') or contains(text(), 'accessible aux personne à mobilité réduite') or contains(text(), 'ACCESSIBLE AUX PERSONNE À MOBILITÉ RÉDUITE')]"):
-                    accessible_mobilité_réduite = "Oui"
-            except:
-                pass
-
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Interphone') or contains(text(), 'interphone') or contains(text(), 'INTERPHONE')]"):
-                    interphone = "Oui"
-            except:
-                pass
-
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Alarme') or contains(text(), 'alarme') or contains(text(), 'ALARME')]"):
-                    alarme = "Oui"
-            except:
-                pass
-
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Digicode') or contains(text(), 'digicode') or contains(text(), 'DIGICODE')]"):
-                    digicode = "Oui"
-            except:
-                pass
-
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Gardien') or contains(text(), 'gardien') or contains(text(), 'GARDIEN')]"):
-                    gardien = "Oui"
-            except:
-                pass
-
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Cuisine ouverte') or contains(text(), 'cuisine ouverte') or contains(text(), 'CUISINE OUVERTE')]"):
-                    Cuisine_ouverte = "Oui"
-            except:
-                pass
-
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'Sans vis à vis') or contains(text(), 'sans vis à vis') or contains(text(), 'SANS VIS À VIS')]"):
-                    sans_vis_à_vis = "Oui"
-            except:
-                pass
-
-            try:
-                if driver.find_element(By.XPATH, "//span[contains(text(), 'calme') or contains(text(), 'Calme') or contains(text(), 'CALME')]"):
-                    calme = "Oui"
-            except:
-                pass
-
-            # Ajouter les données à la liste
-            data.append([arrondissement, pieces, superficie, etage, nombre_etages, balcon, 
-                         ascenseur, parking, prix, cave, accessible_mobilité_réduite, 
-                         interphone, alarme, digicode, gardien,Cuisine_ouverte,sans_vis_à_vis,calme,charges_annuelles])
-
-            print(f"✅ Annonce {index + 1} scrapée avec succès !")
-
-            # Fermer l'onglet et revenir à la page principale
-            driver.close()
-            driver.switch_to.window(original_window)
-            print("🔙 Retour à l'onglet des résultats.")
-
-            # Attendre le rechargement de la page principale
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="root"]/div/div[3]/div[1]/div[4]')))
-
-            index += 1
+            driver.close()  # Fermer la fenêtre de l'annonce
+            driver.switch_to.window(original_window)  # Retourner à la fenêtre principale
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="root"]/div/div[3]/div[1]/div[4]')))  # Attendre la rechargement
+            index += 1  # Passer à l'annonce suivante
 
         except Exception as e:
             print(f"❌ Erreur avec l'annonce {index + 1} : {e}")
-            index += 1
+            index += 1  # Passer à l'annonce suivante
 
-    current_page += 1
+    current_page += 1  # Passer à la page suivante
 
-# Fermer le navigateur
+# Fermer le navigateur à la fin du scraping
 driver.quit()
 
-# Enregistrer les données dans un fichier CSV
-df = pd.DataFrame(data, columns=["Arrondissement", "Nombre de pieces", "Superficie", "Etage", 
-                                "Nombre d'etages", "Balcon", "Ascenseur", "Parking", "Prix", 
-                                "Cave", "Accessible_mobilité_réduite", "Interphone", 
-                                "Alarme", "Digicode", "Gardien","Cuisine ouverte","Sans vis à vis","Calme","Charge annuelles"])
-df.to_csv("annonces_logic_immo9.csv", index=False, encoding="utf-8", sep=";")
+# Sauvegarder les données dans un fichier CSV
+columns = ["Prix", "Arrondissement", "Nombre de pieces", "Nombre de chambres", "Superficie", "Superficie salon (m²)",
+           "Etage", "Nombre d'etages", "Balcon", "Ascenseur", "Parking", "Cave", "Accessible_mobilité_réduite",
+           "Interphone", "Alarme", "Digicode", "Gardien", "Cuisine ouverte", "Sans vis à vis", "Calme",
+           "Charge annuelles", "Exposition","DPE","GES"]
 
-print("📂 Fichier 'annonces_logic_immo8.csv' sauvegardé avec succès ! 🎉")
+# Convertir les données en DataFrame et les sauvegarder dans un fichier CSV
+pd.DataFrame(data, columns=columns).to_csv("annonces.csv", index=False, encoding="utf-8", sep=";")
+print("📂 Fichier 'annonces_logic_immo.csv' sauvegardé avec succès ! 🎉")
