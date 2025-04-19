@@ -17,6 +17,8 @@ Nous allons citer ici 3 types de noyaux qui sont très courants en SVR :
 - Noyau polynomial (Polynomial Kernel)
 - Noyau RBF (Radial Basis Function Kernel, ou Gaussian Kernel)
 
+![alt text](images/image7.png)
+
 ## Différence entre les noyaux 
 
 Le noyau linénaire est conçue pour des données, des relations linéraires très simple, elle rapide et résistant au surapprentissage mais échoue à capturer les non-linéarités. 
