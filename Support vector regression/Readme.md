@@ -24,4 +24,4 @@ Le noyau linénaire est conçue pour des données, des relations linéraires tr�
 Le noyau polynomial, quant à lui, arrive à capturer des relations non linéaires de degré modéré. Cependant, elle peut surajuster si le degré de polynôme est trop élevé.
 
 Le noyau RBF est adapaté aux relations hautement non linéaires.
-![alt text]([images/image7.png](https://github.com/CAIThomas/Projet_immobilliers/blob/main/images/image7.png?raw=true)
+![alt text](https://github.com/CAIThomas/Projet_immobilliers/blob/main/images/image7.png?raw=true)
