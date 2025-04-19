@@ -12,6 +12,8 @@ La Support Vector Regression (SVR) est une variante des machines à vecteurs de 
 
 La SVR utilise différentes fonctions noyau (kernels) pour modéliser des relations complexes dans les données. Ces noyaux permettent de transformer l'espace des caractéristiques (feature space) sans calcul explicite des coordonnées dans un espace de plus haute dimension (grâce à l'astuce du noyau, kernel trick).
 
+En Support Vector Regression (SVR), contrairement à la classification SVM où l'on cherche un hyperplan qui sépare les classes, l'objectif est de trouver un hyperplan qui approche au mieux les données tout en maintenant une marge d'erreur tolérée (ε-insensitive tube).
+
 ## Types de noyaux 
 
 Nous allons citer ici 3 types de noyaux qui sont très courants en SVR :
