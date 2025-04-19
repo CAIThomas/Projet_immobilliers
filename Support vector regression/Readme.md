@@ -12,7 +12,7 @@ La SVR utilise différentes fonctions noyau (kernels) pour modéliser des relati
 
 ## Types de noyaux 
 
-Nous allons citer ici 3 types de noyaux qui sont très courrants en SVR :
+Nous allons citer ici 3 types de noyaux qui sont très courants en SVR :
 - Noyau linéaire (Linear Kernel)  
 - Noyau polynomial (Polynomial Kernel)
 - Noyau RBF (Radial Basis Function Kernel, ou Gaussian Kernel)
