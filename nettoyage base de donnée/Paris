@@ -1,0 +1,196 @@
+# Code pout le nettoyage de la base de donnée de Paris
+
+import pandas as pd
+import re
+
+# Charger les 10 premières lignes du fichier
+df = pd.read_csv("annonces_Paris_sans_doublons.csv", sep=";")
+print(df.columns.tolist())
+
+# Nettoie les noms de colonnes
+df.columns = (
+    df.columns
+    .str.encode('latin1')  # Corrige les caractères mal lus
+    .str.decode('utf-8', errors='ignore')
+    .str.strip()
+)
+
+print(df.columns.tolist())
+
+# 🧼 Nettoyage du prix
+def nettoyer_prix(prix):
+    if pd.isna(prix):
+        return None
+    prix_str = re.sub(r"[^\d]", "", str(prix))
+    return int(prix_str) if prix_str.isdigit() else None
+
+# 🧼 Nettoyage des charges annuelles
+def nettoyer_charges(val):
+    if pd.isna(val) or val == "":
+        return 0
+    val_str = str(val)
+    val_str = re.sub(r"[^\d]", "", val_str)  # supprime tout sauf les chiffres
+    return int(val_str) if val_str.isdigit() else 0
+
+
+# 🧼 Nettoyage de l’arrondissement (extrait le code postal)
+def nettoyer_arrondissement(texte):
+    match = re.search(r"\((75\d{3})\)", str(texte))
+    return int(match.group(1)) if match else None
+
+# 🧼 Nettoyage de la superficie (retourne un float sans "m²", virgule → point)
+def nettoyer_superficie(val):
+    if pd.isna(val):
+        return None
+    val_str = str(val).replace(",", ".")  # change virgule en point
+    val_str = re.sub(r"[^\d.]", "", val_str)  # supprime les caractères sauf chiffres et point
+    try:
+        return float(val_str)
+    except ValueError:
+        return None
+
+# 🏢 Nettoyage étage
+def clean_etage(val):
+    if pd.isna(val):
+        return None, None
+
+    val = str(val).replace('.', ',')  # Remplace le point par une virgule
+
+    if "RDC" in val.upper():  # Gestion de casse
+        match = re.search(r'RDC/?(\d+)?', val.upper())
+        etage = 0
+        total = int(match.group(1)) if match and match.group(1) else None
+        return etage, total
+
+    match = re.search(r"(\d+)", val)
+    return (int(match.group(1)), None) if match else (None, None)
+
+# 📦 Gestion des deux colonnes étage + nombre d'étages
+def clean_deux_colonnes(row):
+    val1, val2 = row.iloc[0], row.iloc[1]
+    try:
+        if pd.notna(val1) and pd.notna(val2):
+            return int(val1), int(val2)
+    except:
+        pass
+    return clean_etage(val1) if pd.notna(val1) else clean_etage(val2)
+
+#modification de l'exposition
+def map_exposition(val):
+    if pd.isna(val):
+        return None
+    val = str(val).strip().lower().replace("é", "e")
+
+    exposition_map = {
+        "nord": 1,
+        "nord-est": 2,
+        "nord est": 2,
+        "est": 3,
+        "sud-est": 4,
+        "sud est": 4,
+        "sud": 5,
+        "sud-ouest": 6,
+        "sud ouest": 6,
+        "ouest": 7,
+        "nord-ouest": 8,
+        "nord ouest": 8
+    }
+
+    for key in exposition_map:
+        if key in val:
+            return exposition_map[key]
+    return None
+
+# Modification pour DPE et GES
+def dpe_ges(val):
+    if pd.isna(val):
+        return None
+
+    note_map = {
+        "A": 1,
+        "B": 2,
+        "C": 3,
+        "D": 4,
+        "E": 5,
+        "F": 6,
+    }
+
+    for key in note_map:
+        if key in val:
+            return note_map[key]
+    return None
+
+# Fonction de transformation OUI/NON
+def oui_non_to_binary(val):
+    if pd.isna(val):
+        return None
+    val = str(val).strip().upper()
+    if val == "OUI":
+        return 1
+    elif val == "NON":
+        return 0
+    return None
+
+
+# ✨ Application du nettoyage
+df["prix"] = df["Prix"].apply(nettoyer_prix)
+df["superficie"] = df["Superficie"].apply(nettoyer_superficie)
+df["arrondissement"] = df["Arrondissement"].apply(nettoyer_arrondissement).astype("Int64")  # colonne entière mais avec NaN possible
+df["superficie"] = df["Superficie"].apply(nettoyer_superficie)
+df["charges_annuelles"] = df["Charge annuelles"].apply(nettoyer_charges)
+
+df.loc[
+    df["Superficie salon (m²)"].isna() & (df["Nombre de pieces"] == 1),
+    "Superficie salon (m²)"
+] = df["superficie"]
+
+
+# Application de la fonction sur la colonne "exposition"
+df["Exposition"] = df["Exposition"].apply(map_exposition)
+
+df["DPE"] = df["DPE"].apply(dpe_ges)
+df["GES"] = df["GES"].apply(dpe_ges)
+
+# Nettoyage étage
+etages_nettoyes = df[["Etage", "Nombre d'etages"]].apply(clean_deux_colonnes, axis=1, result_type='expand')
+etages_nettoyes.columns = ["Etage", "Total_etages"]
+
+colonnes_oui_non = [
+    "Balcon", "Ascenseur", "Parking", "Cave", "Accessible_mobilité_réduite",
+    "Interphone", "Alarme", "Digicode", "Gardien", "Cuisine ouverte",
+    "Sans vis à vis", "Calme"
+]
+
+# Application de la fonction à chaque colonne ciblée
+for col in colonnes_oui_non:
+    if col in df.columns:
+        df[col] = df[col].apply(oui_non_to_binary)
+
+# Liste des colonnes à traiter
+colonnes_cibles = ["DPE", "GES"]
+
+# Remplir les NaN par la moyenne arrondie à l'entier dans les colonnes ciblées
+for col in colonnes_cibles:
+    if col in df.columns:
+        moyenne = round(df[col].mean())  
+        df[col].fillna(moyenne, inplace=True)
+
+
+# Supprimer les anciennes colonnes pour éviter les doublons
+df = df.drop(columns=["Etage", "Nombre d'etages"])
+df = df.drop(columns=["Arrondissement"])
+df = df.drop(columns=["Superficie"])
+df = df.drop(columns=["Prix"])
+df = df.drop(columns=["Charge annuelles"])
+
+# Suppression des lignes où 'Arrondissement' est vide ou NaN
+df = df[df["arrondissement"].notna() & (df["arrondissement"].astype(str).str.strip() != "")]
+
+# Fusion propre
+df = pd.concat([df, etages_nettoyes], axis=1)
+
+
+# 💾 Export
+df.to_excel("paris_2.xlsx", index=False)
+
+print("✅ Nettoyage terminé ! Fichier exporté.")
