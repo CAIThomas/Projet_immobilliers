@@ -1,37 +1,28 @@
-# matrice de corrélation avec les features qu'on a choisi :
-
 import pandas as pd
+
+# Chargement des données
+df = pd.read_csv("Base_de_donnée.csv", sep=";") 
+
+# Remplacer les -1 par NaN
+df.replace(-1, pd.NA, inplace=True)
+
+# Convertir les colonnes en numériques (si ce n’est pas déjà le cas)
+df = df.apply(pd.to_numeric, errors='ignore')
+
+# On sélectionne uniquement les colonnes numériques
+df_numeric = df.select_dtypes(include=['float64', 'int64'])
+
+# Remplir les NaN avec la moyenne de chaque colonne
+df_filled = df_numeric.fillna(df_numeric.mean())
+
+# Calcul de la matrice de corrélation
+correlation_matrix = df_filled.corr()
+
+# Affichage
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Charger le fichier CSV
-df = pd.read_csv('paris_nettoyé.csv', sep=';')
-
-
-# Liste des 20 features (à adapter selon ton jeu de données)
-features = ['Nombre de pieces',	'Nombre de chambres','Balcon','Ascenseur','Parking','Cave',
-            'Interphone','Alarme','Digicode','Gardien',	'Cuisine ouverte',
-            'Sans vis à vis','Calme','DPE','GES','superficie',
-            'charges_annuelles','Etage','arrdt_0','arrdt_1','arrdt_2','arrdt_3','arrdt_4',
-            'arrdt_5','arrdt_6','arrdt_7','arrdt_8','arrdt_9','arrdt_10','arrdt_11','arrdt_12',
-            'arrdt_13','arrdt_14','arrdt_15','arrdt_16','arrdt_17','arrdt_18','arrdt_19','arrdt_20',
-            'expo_1,0','expo_3,0','expo_5,0','expo_nan']
-
-
-# Ajouter la colonne "prix"
-features.append('prix')
-
-# Sous-ensemble du DataFrame avec seulement les colonnes d'intérêt
-df_subset = df[features]
-
-# Calcul de la matrice de corrélation
-correlation_matrix = df_subset.corr(numeric_only=True)
-
-# Affichage uniquement des corrélations par rapport au prix
-cor_prix = correlation_matrix[['prix']].sort_values(by='prix', ascending=False)
-
-# Affichage en heatmap
-plt.figure(figsize=(6, 10))
-sns.heatmap(cor_prix, annot=True, cmap='coolwarm', cbar=True)
-plt.title('Corrélation des features avec le prix')
+plt.figure(figsize=(16,12))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f")
+plt.title("Matrice de corrélation (avec NaN remplis par la moyenne)")
 plt.show()
