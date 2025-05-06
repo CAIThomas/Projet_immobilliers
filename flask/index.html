@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prédiction du prix immobilier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        h1 {
+            color: #0056b3;
+        }
+
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 500px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        input[type="submit"] {
+            background-color: #0056b3;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #003f8a;
+        }
+
+        /* Style pour afficher la prédiction dans une boîte */
+        .prediction-box {
+            background-color: #d4edda;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            border: 1px solid #c3e6cb;
+            font-size: 1.2em;
+        }
+
+        .prediction-text {
+            font-size: 1em;
+            color: #155724;
+        }
+
+        .percentage-text {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+
+        h2 {
+            margin-top: 20px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Estimation du prix immobilier</h1>
+    <form method="POST" action="/predict">
+        <label>Superficie (m²) :</label><br>
+        <input type="number" name="superficie" step="any" required><br><br>
+
+        <label>Nombre de pièces :</label><br>
+        <input type="number" name="pieces" required><br><br>
+
+        <label>Nombre de chambres :</label><br>
+        <input type="number" name="chambres" required><br><br>
+
+        <label>Arrondissement :</label><br>
+        <select name="arrondissement" required>
+            <optgroup label="Paris">
+                {% for code in range(75001, 75021) %}
+                    <option value="arrdt_{{ code }}">Paris {{ code - 75000 }}</option>
+                {% endfor %}
+            </optgroup>
+            <optgroup label="Val-de-Marne (94)">
+                <option value="arrdt_94100">Saint-Maur-des-Fossés (94100)</option>
+                <option value="arrdt_94110">Arcueil (94110)</option>
+                <option value="arrdt_94120">Fontenay-sous-Bois (94120)</option>
+                <option value="arrdt_94130">Nogent-sur-Marne (94130)</option>
+                <option value="arrdt_94140">Alfortville (94140)</option>
+                <option value="arrdt_94150">Rungis (94150)</option>
+                <option value="arrdt_94160">Saint-Mandé (94160)</option>
+                <option value="arrdt_94170">Le Perreux-sur-Marne (94170)</option>
+                <option value="arrdt_94190">Villeneuve-Saint-Georges (94190)</option>
+                <option value="arrdt_94200">Ivry-sur-Seine (94200)</option>
+                <option value="arrdt_94205">Charenton-le-Pont (94205)</option>
+                <option value="arrdt_94210">La Varenne-Saint-Hilaire (94210)</option>
+                <option value="arrdt_94220">Charenton-le-Pont (94220)</option>
+                <option value="arrdt_94230">Cachan (94230)</option>
+                <option value="arrdt_94240">L’Haÿ-les-Roses (94240)</option>
+                <option value="arrdt_94250">Gentilly (94250)</option>
+                <option value="arrdt_94260">Fresnes (94260)</option>
+                <option value="arrdt_94270">Le Kremlin-Bicêtre (94270)</option>
+                <option value="arrdt_94290">Villeneuve-le-Roi (94290)</option>
+                <option value="arrdt_94300">Vincennes (94300)</option>
+                <option value="arrdt_94310">Orly (94310)</option>
+                <option value="arrdt_94320">Thiais (94320)</option>
+                <option value="arrdt_94340">Joinville-le-Pont (94340)</option>
+                <option value="arrdt_94350">Villiers-sur-Marne (94350)</option>
+                <option value="arrdt_94360">Bry-sur-Marne (94360)</option>
+                <option value="arrdt_94370">Sucy-en-Brie (94370)</option>
+                <option value="arrdt_94380">Bonneuil-sur-Marne (94380)</option>
+                <option value="arrdt_94400">Vitry-sur-Seine (94400)</option>
+                <option value="arrdt_94410">Saint-Maurice (94410)</option>
+                <option value="arrdt_94420">Le Plessis-Trévise (94420)</option>
+                <option value="arrdt_94430">Chennevières-sur-Marne (94430)</option>
+                <option value="arrdt_94440">Marolles-en-Brie (94440)</option>
+                <option value="arrdt_94450">Limeil-Brévannes (94450)</option>
+                <option value="arrdt_94460">Valenton (94460)</option>
+                <option value="arrdt_94470">Boissy-Saint-Léger (94470)</option>
+                <option value="arrdt_94480">Ablon-sur-Seine (94480)</option>
+                <option value="arrdt_94490">Ormesson-sur-Marne (94490)</option>
+                <option value="arrdt_94500">Champigny-sur-Marne (94500)</option>
+                <option value="arrdt_94510">La Queue-en-Brie (94510)</option>
+                <option value="arrdt_94520">Mandres-les-Roses (94520)</option>
+                <option value="arrdt_94550">Chevilly-Larue (94550)</option>
+                <option value="arrdt_94600">Choisy-le-Roi (94600)</option>
+                <option value="arrdt_94700">Maisons-Alfort (94700)</option>
+                <option value="arrdt_94800">Villejuif (94800)</option>
+                <option value="arrdt_94880">Noiseau (94880)</option>
+            </optgroup>
+        </select><br><br>
+
+        <label><input type="checkbox" name="cave"> Cave</label><br>
+        <label><input type="checkbox" name="ascenseur"> Ascenseur</label><br>
+        <label><input type="checkbox" name="gardien"> Gardien</label><br><br>
+
+        <input type="submit" value="Prédire le prix">
+    </form>
+
+    {% if prediction_text %}
+        <div class="prediction-box">
+            <div class="prediction-text">{{ prediction_text }}</div>
+            <div class="percentage-text">Précision de la prédiction : {{ prediction_percentage }}%</div>
+        </div>
+    {% endif %}
+</body>
+</html>
