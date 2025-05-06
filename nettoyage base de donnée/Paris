@@ -2,7 +2,7 @@ import pandas as pd
 import re
 
 # 📥 Charger le fichier
-df = pd.read_csv("paris.csv", sep=";")
+df = pd.read_csv("annonces_Paris_sans_doublons.csv", sep=";")
 print(df.columns.tolist())
 
 # Nettoyer les noms de colonnes
@@ -26,7 +26,8 @@ def nettoyer_prix(prix):
 def nettoyer_charges(val):
     if pd.isna(val) or val == "":
         return 0
-    val_str = re.sub(r"[^\d]", "", str(val))
+    val_str = str(val)
+    val_str = re.sub(r"[^\d]", "", val_str)
     return int(val_str) if val_str.isdigit() else 0
 
 # 🧼 Nettoyage de l’arrondissement
@@ -107,18 +108,16 @@ df["superficie"] = df["Superficie"].apply(nettoyer_superficie)
 df["arrondissement"] = df["Arrondissement"].apply(nettoyer_arrondissement).astype("Int64")
 df["charges_annuelles"] = df["Charge annuelles"].apply(nettoyer_charges)
 
-# Copier la superficie dans "Superficie salon" si studio
 df.loc[
     df["Superficie salon (m²)"].isna() & (df["Nombre de pieces"] == 1),
     "Superficie salon (m²)"
 ] = df["superficie"]
 
-# Nettoyage colonnes Exposition, DPE, GES
 df["Exposition"] = df["Exposition"].apply(map_exposition)
 df["DPE"] = df["DPE"].apply(dpe_ges)
 df["GES"] = df["GES"].apply(dpe_ges)
 
-# Colonnes Oui/Non
+# Colonnes OUI/NON à convertir
 colonnes_oui_non = [
     "Balcon", "Ascenseur", "Parking", "Cave", "Accessible_mobilité_réduite",
     "Interphone", "Alarme", "Digicode", "Gardien", "Cuisine ouverte",
@@ -128,47 +127,26 @@ for col in colonnes_oui_non:
     if col in df.columns:
         df[col] = df[col].apply(oui_non_to_binary)
 
-# Remplir DPE et GES manquants par la moyenne
+# Moyenne pour DPE et GES
 for col in ["DPE", "GES"]:
     if col in df.columns:
         moyenne = round(df[col].mean())
         df[col].fillna(moyenne, inplace=True)
 
-# ❌ Supprimer les lignes sans arrondissement
+# ❌ Supprimer les lignes sans arrondissement AVANT traitement des étages
 df = df[df["arrondissement"].notna() & (df["arrondissement"].astype(str).str.strip() != "")]
 
-# 🏢 Nettoyage étage
+# 🏢 Nettoyage étage (après suppression des lignes sans arrondissement)
 etages_nettoyes = df[["Etage", "Nombre d'etages"]].apply(clean_deux_colonnes, axis=1, result_type='expand')
 etages_nettoyes.columns = ["Etage", "Total_etages"]
 
-# 🧼 One-hot encoding ARRONDISSEMENTS (ARD01 -> ARD21)
-df["arr_code"] = df["arrondissement"].astype(str).str[-2:]
-for i in range(1, 22):
-    col_name = f"ard{i}"
-    code = f"{i:02}"
-    df[col_name] = (df["arr_code"] == code).astype(int)
-df.drop(columns=["arr_code"], inplace=True)
-
-# ☀️ One-hot encoding EXPOSITIONS (N, N-E, N-O, S, S-E, S-O)
-exposition_labels = {
-    1: "N",
-    2: "N-E",
-    8: "N-O",
-    5: "S",
-    4: "S-E",
-    6: "S-O"
-}
-for code, label in exposition_labels.items():
-    df[label] = (df["Exposition"] == code).astype(int)
-df.drop(columns=["Exposition"], inplace=True)
-
-# 🚮 Supprimer les colonnes originales devenues inutiles
+# 🚮 Supprimer les anciennes colonnes
 df = df.drop(columns=["Etage", "Nombre d'etages", "Arrondissement", "Superficie", "Prix", "Charge annuelles"])
 
-# 🔀 Ajouter les colonnes d'étage nettoyées
+# 🔀 Fusion propre avec les colonnes d'étages nettoyées
 df = pd.concat([df, etages_nettoyes], axis=1)
 
-# ➖ Remplacer les NaN restants par -1
+# ➖ Remplacer tous les NaN par -1
 df = df.fillna(-1)
 
 # 💾 Export final
