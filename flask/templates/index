@@ -1,9 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8" />
-    <title>À propos - ImmoScope</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prédiction du prix immobilier</title>
     <style>
         :root {
             --gradient-1: linear-gradient(to right, #e6e9ff, #f0e6ff);
@@ -13,8 +13,6 @@
             --text-color: #333;
             --light-bg: #fafaff;
             --shadow-light: rgba(0, 0, 0, 0.07);
-            --card-bg: #fff;
-            --accent-color: #7a4de8;
         }
 
         * {
@@ -93,117 +91,202 @@
             user-select: none;
         }
 
-        .about-container {
-            padding: 40px;
-            max-width: 1200px;
-            margin: 120px auto 0 auto;
+        .main {
+            display: flex;
+            gap: 40px;
+            margin-top: 120px;
+            margin-left: 260px;
+            padding: 40px 40px 60px 40px;
+            width: calc(100%);
+            max-width: none;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 25px var(--shadow-light);
+            box-sizing: border-box;
+            font-size: 1em;
+            overflow-y: auto;
+            min-height: calc(100vh - 160px);
             justify-content: center;
-            padding-top: 20px;
         }
 
-        .about-header {
+        .form-container {
+            flex: 1;
+            max-width: 650px;
+        }
+
+        form label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+            color: var(--primary-dark);
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            margin-top: 5px;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background-color: #f7f7ff;
+            font-size: 1.05em;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-weight: 500;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 8px rgba(122, 77, 232, 0.4);
+            outline: none;
+        }
+
+        input[type="submit"] {
+            background: linear-gradient(to right, #8961ec, #b183ea);
+            color: white;
+            padding:10px 25px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.12em;
+            font-weight: 700;
+            transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+            box-shadow: 0 6px 16px rgba(122, 77, 232, 0.3);
+            user-select: none;
+            margin-top: 10px;
+            width: 100%; /* Ajouté pour prendre toute la largeur */
+            box-shadow: none; /* Supprime les ombres */
+        }
+        
+
+        input[type="submit"]:hover {
+            background: linear-gradient(to right, #6544c0, #8b65eb);
+            transform: scale(1);
+            box-shadow: 0 5px 10px rgba(122, 77, 232, 0.5);
+        }
+
+        label input[type="checkbox"] {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+
+        label {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .prediction-container {
+            flex-basis: 320px;
+            border-radius: 15px;
+            padding: 25px 20px;
+            height: fit-content;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .prediction-box {
+            background-color: #faf4ff;
+            border: 2px solid var(--primary-color);
+            padding: 20px 15px;
+            border-radius: 12px;
+            /*box-shadow: 0 4px 14px rgba(122, 77, 232, 0.15);*/
             text-align: center;
-            margin-bottom: 40px;
         }
 
-        .about-header h1 {
-            color: var(--text-color);
-            font-size: 2.5em;
-            margin-bottom: 15px;
+        .prediction-text {
+            font-size: 1.4em;
+            color: var(--primary-dark);
+            font-weight: 700;
+            margin-bottom: 12px;
+            line-height: 1.3;
         }
 
-        .about-header .subtitle {
-            color: var(--text-color);
-            opacity: 0.8;
-            font-size: 1.2em;
+        .percentage-text {
+            font-size: 1em;
+            color: #7b7b9d;
+            font-weight: 500;
+            letter-spacing: 0.03em;
         }
 
-        .about-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-
+        /* Responsive */
         @media (max-width: 768px) {
-            .about-grid {
-                grid-template-columns: 1fr;
+            body {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                position: static;
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                justify-content: space-around;
+                margin: 0;
+                padding: 10px;
+                border-radius: 0;
+            }
+
+            .header {
+                position: static;
+                width: 100%;
+                left: 0;
+                top: 0;
+                border-radius: 0;
+                margin: 0;
+                padding: 10px;
+                justify-content: center;
+                font-size: 1.4em;
+            }
+
+            .main {
+                flex-direction: column;
+                margin-left: 0;
+                padding: 20px;
+                width: 100%;
+                max-width: 100%;
+                min-height: auto;
+            }
+
+            .form-container,
+            .prediction-container {
+                max-width: 100%;
+                flex-basis: auto;
+                padding: 0;
+                margin-bottom: 25px;
             }
         }
-
-        .about-card {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            transition: transform 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .about-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .icon-wrapper {
-            width: 60px;
-            height: 60px;
-            background: var(--gradient-2);
-            border-radius: 50%;
+            /* Checkbox inline */
+        .checkbox-group {
+            margin-bottom: 1.6rem;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-        }
-
-        .icon-wrapper i {
-            font-size: 24px;
-            color: var(--text-color);
-        }
-
-        .about-card h3 {
-            color: var(--text-color);
-            margin-bottom: 15px;
-        }
-
-        .about-card p {
-            color: var(--text-color);
-            opacity: 0.8;
-            line-height: 1.6;
-        }
-
-        .features ul {
-            list-style: none;
-            text-align: left;
-            padding: 0;
-        }
-
-        .features li {
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .features i {
-            color: var(--accent-color);
-        }
-
-        .tech-stack {
-            display: flex;
+            gap: 1.2rem;
             flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
         }
 
-        .tech-stack span {
-            background: var(--gradient-1);
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--blue-dark);
+            user-select: none;
         }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--blue-medium);
+        }
+
     </style>
 </head>
-
 <body>
     <div class="sidebar">
         <img src="{{ url_for('static', filename='logo_immo.png') }}" alt="ImmoScope Logo" style="width: 100%; max-width: 200px; margin-bottom: 20px; border-radius: 8px;" />
@@ -213,65 +296,103 @@
     </div>
 
     <div class="header">
-        À propos d’ImmoScope
+        🏘️ Prédiction Immobilière Paris et Val-de-Marne 
     </div>
 
-    <div class="about-container">
-        <div class="about-header">
-            <p class="subtitle">ImmoScope : un outil de prédiction de prix immobiliers basé sur le machine learning</p>
+    <div class="main">
+        <div class="form-container">
+            <form method="POST" action="/predict">
+                <label for="arrondissement">Arrondissement :</label>
+                <select name="arrondissement" id="arrondissement" required>
+                    <optgroup label="Paris">
+                        {% for code in range(75001, 75021) %}
+                            <option value="arrdt_{{ code }}">Paris {{ code - 75000 }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    <optgroup label="Val-de-Marne (94)">
+                        <option value="arrdt_94100">Saint-Maur-des-Fossés (94100)</option>
+                        <option value="arrdt_94110">Arcueil (94110)</option>
+                        <option value="arrdt_94120">Fontenay-sous-Bois (94120)</option>
+                        <option value="arrdt_94130">Nogent-sur-Marne (94130)</option>
+                        <option value="arrdt_94140">Alfortville (94140)</option>
+                        <option value="arrdt_94150">Rungis (94150)</option>
+                        <option value="arrdt_94160">Saint-Mandé (94160)</option>
+                        <option value="arrdt_94170">Le Perreux-sur-Marne (94170)</option>
+                        <option value="arrdt_94190">Villeneuve-Saint-Georges (94190)</option>
+                        <option value="arrdt_94200">Ivry-sur-Seine (94200)</option>
+                        <option value="arrdt_94205">Charenton-le-Pont (94205)</option>
+                        <option value="arrdt_94210">La Varenne-Saint-Hilaire (94210)</option>
+                        <option value="arrdt_94220">Charenton-le-Pont (94220)</option>
+                        <option value="arrdt_94230">Cachan (94230)</option>
+                        <option value="arrdt_94240">L’Haÿ-les-Roses (94240)</option>
+                        <option value="arrdt_94250">Gentilly (94250)</option>
+                        <option value="arrdt_94260">Fresnes (94260)</option>
+                        <option value="arrdt_94270">Le Kremlin-Bicêtre (94270)</option>
+                        <option value="arrdt_94290">Villeneuve-le-Roi (94290)</option>
+                        <option value="arrdt_94300">Vincennes (94300)</option>
+                        <option value="arrdt_94310">Orly (94310)</option>
+                        <option value="arrdt_94320">Thiais (94320)</option>
+                        <option value="arrdt_94340">Joinville-le-Pont (94340)</option>
+                        <option value="arrdt_94350">Villiers-sur-Marne (94350)</option>
+                        <option value="arrdt_94360">Bry-sur-Marne (94360)</option>
+                        <option value="arrdt_94370">Sucy-en-Brie (94370)</option>
+                        <option value="arrdt_94380">Bonneuil-sur-Marne (94380)</option>
+                        <option value="arrdt_94400">Vitry-sur-Seine (94400)</option>
+                        <option value="arrdt_94410">Saint-Maurice (94410)</option>
+                        <option value="arrdt_94420">Le Plessis-Trévise (94420)</option>
+                        <option value="arrdt_94430">Chennevières-sur-Marne (94430)</option>
+                        <option value="arrdt_94440">Marolles-en-Brie (94440)</option>
+                        <option value="arrdt_94450">Limeil-Brévannes (94450)</option>
+                        <option value="arrdt_94460">Valenton (94460)</option>
+                        <option value="arrdt_94470">Boissy-Saint-Léger (94470)</option>
+                        <option value="arrdt_94480">Ablon-sur-Seine (94480)</option>
+                        <option value="arrdt_94490">Ormesson-sur-Marne (94490)</option>
+                        <option value="arrdt_94500">Champigny-sur-Marne (94500)</option>
+                        <option value="arrdt_94510">La Queue-en-Brie (94510)</option>
+                        <option value="arrdt_94520">Mandres-les-Roses (94520)</option>
+                        <option value="arrdt_94550">Chevilly-Larue (94550)</option>
+                        <option value="arrdt_94600">Choisy-le-Roi (94600)</option>
+                        <option value="arrdt_94700">Maisons-Alfort (94700)</option>
+                        <option value="arrdt_94800">Villejuif (94800)</option>
+                        <option value="arrdt_94880">Noiseau (94880)</option>
+
+                    </optgroup>
+                </select>
+
+                <label for="superficie">Superficie (m²) :</label>
+                <input type="number" name="superficie" id="superficie" step="any" required />
+
+                <label for="pieces">Nombre de pièces :</label>
+                <input type="number" name="pieces" id="pieces" required />
+
+                <label for="chambres">Nombre de chambres :</label>
+                <input type="number" name="chambres" id="chambres" required />
+
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="cave" /> Cave</label>
+                    <label><input type="checkbox" name="ascenseur" /> Ascenseur</label>
+                    <label><input type="checkbox" name="gardien" /> Gardien</label>
+                </div>
+
+
+                <input type="submit" value="Prédire" />
+            </form>
         </div>
 
-        <div class="about-grid">
-            <!-- Mission -->
-            <div class="about-card">
-                <div class="icon-wrapper">
-                    <i class="fas fa-bullseye"></i>
-                </div>
-                <h3>Notre mission</h3>
-                <p>Fournir une estimation précise du prix au m² d’un bien immobilier à Paris et dans le Val-de-Marne, à partir de ses caractéristiques.</p>
-            </div>
-
-            <!-- Vision -->
-            <div class="about-card">
-                <div class="icon-wrapper">
-                    <i class="fas fa-eye"></i>
-                </div>
-                <h3>Notre vision</h3>
-                <p>Démocratiser l’accès à l’intelligence artificielle dans l’immobilier pour guider les acheteurs, vendeurs et passionnés du marché.</p>
-            </div>
-
-            <!-- Fonctionnalités -->
-            <div class="about-card features">
-                <div class="icon-wrapper">
-                    <i class="fas fa-star"></i>
-                </div>
-                <h3>Fonctionnalités clés</h3>
-                <ul>
-                    <li><i class="fas fa-check"></i> Prédiction du prix au m²</li>
-                    <li><i class="fas fa-check"></i> Interface intuitive</li>
-                    <li><i class="fas fa-check"></i> Données réelles et mises à jour</li>
-                    <li><i class="fas fa-check"></i> Modèles d’apprentissage supervisé</li>
-                </ul>
-            </div>
-
-            <!-- Technologies -->
-            <div class="about-card">
-                <div class="icon-wrapper">
-                    <i class="fas fa-code"></i>
-                </div>
-                <h3>Technologies utilisées</h3>
-                <div class="tech-stack">
-                    <span>Python</span>
-                    <span>Flask</span>
-                    <span>Scikit-Learn</span>
-                    <span>Pandas</span>
-                    <span>HTML/CSS</span>
+        <div class="prediction-container">
+            {% if prediction_text %}
+            <div class="prediction-box">
+                <div class="prediction-text">{{ prediction_text }}</div>
+                <div class="percentage-text">
+                    Précision de la prédiction : {{ prediction_percentage }}%
                 </div>
             </div>
+            {% else %}
+            <div style="color:#999; font-style: italic; text-align:center;">
+                Les résultats de prédiction s'afficheront ici.
+            </div>
+            {% endif %}
         </div>
     </div>
-
-    <!-- Font Awesome pour les icônes -->
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 </body>
 </html>
