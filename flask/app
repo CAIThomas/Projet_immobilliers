@@ -3,7 +3,7 @@ from flask import Flask, render_template, request
 import joblib
 
 # Charger le modèle pré-entraîné
-model = joblib.load('C:/Users/thoma/OneDrive/Desktop/Esme/Projet_Immobilliers/projet_immo_flask/projet_immo/model.pkl')
+model = joblib.load('model.pkl')
 
 # Créer une fonction pour calculer le poids de l'arrondissement
 def poids_arrondissement(val):
@@ -61,17 +61,21 @@ def predict():
 
     arrdt_value = poids_arrondissement(arrondissement)
 
-    # IMPORTANT : respecter le même ordre de colonnes qu’à l'entraînement
+    
     input_data = pd.DataFrame([[pieces, chambres, ascenseur, cave, gardien, superficie, arrdt_value]],
                               columns=['Nombre de pieces', 'Nombre de chambres', 'Ascenseur', 'Cave', 'Gardien', 'superficie', 'arrondissement'])
 
     predicted_price = model.predict(input_data)[0]
-    prediction_percentage = 85 # Exemple : la précision est de 85% (ajustable)
+    prediction_percentage = 80
 
     prediction_text = f"Le prix estimé est de {predicted_price:,.2f} €"
 
     return render_template('index.html', prediction_text=prediction_text, prediction_percentage=prediction_percentage)
 
+@app.route("/about")
+def about():
+    return render_template("about-us.html")
 # Lancer l'application Flask
-if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+if __name__ == "__main__":
+    import os
+    app.run(debug=True, port=5001, use_reloader=os.environ.get("WERKZEUG_RUN_MAIN") == "true")
